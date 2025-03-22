@@ -299,9 +299,13 @@
           <label for="productible">Productible :</label>
           <input type="text" id="productible" name="productible" placeholder="kWh/kWc/an" readonly/>
 
-          <!-- Nouveau champ Territoire (détecté auto) -->
-          <label for="territory">Territoire détecté :</label>
-          <input type="text" id="territory" name="territory" disabled />
+          <!-- Territoire détecté -->
+          <label for="territory">Territoire :</label>
+          <select id="territory" name="territory" disabled>
+            <option value="France Metropolitaine">France Métropolitaine</option>
+            <option value="Corse">Corse</option>
+            <option value="Reunion">Réunion</option>
+          </select>
 
           <button type="button" id="calculateIrrButton">Calculer le productible</button>
         </div>
@@ -726,45 +730,50 @@
     const addressSearchBtn = document.getElementById("addressSearchBtn");
     addressSearchBtn.addEventListener("click", searchAddress);
 
-    function searchAddress() {
-      const address = document.getElementById("address").value;
-      if(!address) return;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
-        .then(r => r.json())
-        .then(data => {
-          if(data.length > 0){
-            const { lat, lon, display_name } = data[0];
-            map.setView([lat, lon], 18);
-            AdresseField.value = address;
-            if(searchMarker){
-              map.removeLayer(searchMarker);
-            }
-            searchMarker = L.marker([lat, lon]).addTo(map);
-            searchMarker.bindPopup(`Adresse trouvée : ${address}`).openPopup();
-            document.getElementById("latitudeIrr").value = lat;
-            document.getElementById("longitudeIrr").value = lon;
-            let foundCP = null;
-            if(data[0].address && data[0].address.postcode){
-              foundCP = data[0].address.postcode;
-            } else {
-              const patternCP = /\b(\d{4,5})\b/;
-              let match = display_name.match(patternCP);
-              if(match) foundCP = match[1];
-            }
-            if(foundCP){
-              document.getElementById("territory").value = "France Metropolitaine";
-            } else {
-              document.getElementById("territory").value = "France Metropolitaine";
-            }
-          } else {
-            alert("Adresse introuvable.");
+function searchAddress() {
+  const address = document.getElementById("address").value;
+  if (!address) return;
+
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.length > 0) {
+        const { lat, lon, address } = data[0];
+        map.setView([lat, lon], 18);
+        AdresseField.value = address;
+
+        if (searchMarker) {
+          map.removeLayer(searchMarker);
+        }
+        searchMarker = L.marker([lat, lon]).addTo(map);
+        searchMarker.bindPopup(`Adresse trouvée : ${address.road || ""}, ${address.city || ""}`).openPopup();
+
+        document.getElementById("latitudeIrr").value = lat;
+        document.getElementById("longitudeIrr").value = lon;
+
+        // Récupérer le code postal
+        let postalCode = address.postcode || "";
+        if (postalCode.length >= 5) {
+          let firstTwoDigits = postalCode.substring(0, 2);
+          let territory = "France Metropolitaine"; // Par défaut
+
+          if (firstTwoDigits === "20") {
+            territory = "Corse";
+          } else if (firstTwoDigits === "97") {
+            territory = "Reunion";
           }
-        })
-        .catch(err => {
-          console.error("Erreur recherche adresse:", err);
-          alert("Une erreur est survenue lors de la recherche de l'adresse.");
-        });
-    }
+
+          document.getElementById("territory").value = territory;
+        }
+      } else {
+        alert("Adresse introuvable.");
+      }
+    })
+    .catch(err => {
+      console.error("Erreur recherche adresse:", err);
+      alert("Une erreur est survenue lors de la recherche de l'adresse.");
+    });
+}
 
     /***************************************************
      * CALCUL DU PRODUCTIBLE (API PVGIS)
