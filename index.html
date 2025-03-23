@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FRH PRO formulaire  - vbetools5</title>
+  <title>FRH PRO formulaire  - vbetools6</title>
 
   <!-- (1) Leaflet CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
@@ -740,7 +740,7 @@ function searchAddress() {
       if (data.length > 0) {
         const { lat, lon, address } = data[0];
         map.setView([lat, lon], 18);
-        AdresseField.value = address;
+        AdresseField.value = `${address.road || ""}, ${address.postcode || ""} ${address.city || ""}`.replace(/^, /, '').trim();
 
         if (searchMarker) {
           map.removeLayer(searchMarker);
